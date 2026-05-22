@@ -231,13 +231,11 @@ body {
 <div class="main-tabs">
 <div class="tab active" data-tkey="recruit">🎯 Подбор</div>
 <div class="tab" data-tkey="production">🏭 Производство</div>
-<div class="tab" data-tkey="onboarding">🌱 Онбординг</div>
 <div class="tab" data-tkey="projects">📋 Проекты</div>
 <div class="tab" data-tkey="reports">📊 Отчёты</div>
 </div>
 <div class="tab-content active" data-tkey="recruit" id="recruit-tab"></div>
 <div class="tab-content" data-tkey="production" id="production-tab"></div>
-<div class="tab-content" data-tkey="onboarding" id="onboarding-tab"></div>
 <div class="tab-content" data-tkey="projects" id="projects-tab"></div>
 <div class="tab-content" data-tkey="reports" id="reports-tab"></div>
 </div>
@@ -2024,9 +2022,13 @@ async function main() {
 
   document.getElementById('recruit-tab').innerHTML = renderRecruitTab(vacs);
   document.getElementById('production-tab').innerHTML = renderProductionBlock(md || '');
-  document.getElementById('onboarding-tab').innerHTML =
-    renderOnboardingBlock(mdOnboarding || '') +
-    '<div style="margin-top:24px;">' + renderISBlock(mdOnboarding || '') + '</div>';
+  // Вкладка "Онбординг" временно убрана по запросу Jane.
+  var _obTab = document.getElementById('onboarding-tab');
+  if (_obTab) {
+    _obTab.innerHTML =
+      renderOnboardingBlock(mdOnboarding || '') +
+      '<div style="margin-top:24px;">' + renderISBlock(mdOnboarding || '') + '</div>';
+  }
   document.getElementById('projects-tab').innerHTML = renderProjectsBlock(md || '');
   document.getElementById('reports-tab').innerHTML = renderReportsApril();
 
