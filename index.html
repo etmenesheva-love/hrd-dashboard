@@ -481,73 +481,68 @@ function vacBorderClass(badge) {
 
 function parseLineProduction(md) {
   if (!md) return [];
-  // Раздел "Вакансии производства" в листе "рекрут актуальные":
-  // названия вакансий идут сразу после строки-заголовка "| | Вакансии производства |".
-  // Заказчик+дата открытия выгружаются отдельным блоком — сопоставляем 1:1 по порядку.
+  // Раздел "Вакансии производства" в листе "рекрут актуальные".
+  // Названия вакансий идут после строки-заголовка "| | Вакансии производства |".
+  // ВАЖНО: внутри списка бывают пустые строки "|  |  |" — они НЕ прерывают список.
   var lines = md.split(/\n/);
-  var names = [];      // {kind, title}
-  var custDates = [];  // {customer, dateOpen}
-
-  // 1) собрать названия
+  var names = [];
   var i = 0, n = lines.length;
+
+  // найти заголовок раздела
+  var found = false;
   for (; i < n; i++) {
-    if (/^\|\s*\|\s*Вакансии производства\s*\|/i.test(lines[i])) { i++; break; }
+    if (/^\|\s*\|\s*Вакансии производства\s*\|/i.test(lines[i])) { i++; found = true; break; }
   }
-  // пропустить separator
+  if (!found) return [];
+
+  // пропустить строку-сепаратор "| :-: | :-: |"
   for (; i < n; i++) {
     if (/^\|\s*:-:/.test(lines[i])) { i++; break; }
-    if (lines[i].trim() === '') break;
+    if (lines[i].trim() !== '' && lines[i].trim().charAt(0) === '|') break;
   }
-  // строки вида "| новая | Мойщик кубов |"
+
+  // собирать названия; пустые строки пропускаем, стоп — на следующем разделе
   for (; i < n; i++) {
     var ln = lines[i];
-    if (ln.trim() === '') break;
+    if (ln.trim() === '') continue;                 // пустая строка между блоками — пропускаем
+    if (!ln.trim().startsWith('|')) break;          // конец таблицы
+    if (/^\|\s*:-:/.test(ln)) continue;            // сепаратор
+    var c = ln.split('|').slice(1, -1).map(function(x){ return x.trim(); });
+    if (c.length > 3) break;                        // началась широкая таблица (другой блок)
+    // строка-вакансия: "| новая|замена|декретная ставка | Название |"
     var m = ln.match(/^\|\s*(новая|замена|декретн[а-яё]*\s*ставка)\s*\|\s*(.+?)\s*\|\s*$/i);
     if (m) {
-      var title = m[2].replace(/https?:\/\/\S+/gi, '').replace(/\s+/g, ' ').trim();
-      names.push({ kind: /новая/i.test(m[1]) ? 'новая' : 'замена', title: title });
-    } else { break; }
+      var rawTitle = m[2].replace(/https?:\/\/\S+/gi, '').replace(/\s+/g, ' ').trim();
+      if (rawTitle === '') continue;
+      // число людей: из скобок "(нужно 7)" / "(7 человек)" / "7 человек" в названии
+      var ppl = 1;
+      var pm = rawTitle.match(/\(?\s*(?:нужно\s*)?(\d+)\s*(?:чел|человек)/i)
+               || rawTitle.match(/\(\s*нужно\s*(\d+)\s*\)/i);
+      if (pm) ppl = parseInt(pm[1], 10) || 1;
+      var cleanTitle = rawTitle
+        .replace(/\(?\s*(?:нужно\s*)?\d+\s*(?:чел|человек)[а-яё]*\s*\)?/gi, '')
+        .replace(/\(\s*нужно\s*\d+\s*\)/gi, '')
+        .replace(/\s+/g, ' ').trim();
+      // правило Jane: у "комплектовщик Маш" — 7 человек
+      if (/комплектовщик\s*маш/i.test(cleanTitle) && ppl < 7) ppl = 7;
+      names.push({ kind: /новая/i.test(m[1]) ? 'новая' : 'замена', title: cleanTitle, people: ppl });
+    } else {
+      // строка без типа вакансии в первой ячейке — конец раздела вакансий
+      if (c[0] === '' || /^[А-ЯЁ]/.test(c[0]) === false) {
+        // это может быть пустая "| | |" — пропустим, но если две подряд непохожие — стоп
+        if (c.every(function(x){ return x === ''; })) continue;
+      }
+      break;
+    }
   }
   if (!names.length) return [];
 
-  // 2) собрать блок "заказчик + дата открытия": строки "| Имя | DD.MM.YYYY |"
-  //    берём первый блок такого вида во всём файле после раздела
-  var blocks = [];
-  for (var j = 0; j < n; j++) {
-    var bm = lines[j].match(/^\|\s*([^|]*?)\s*\|\s*(\d{1,2}\.\d{1,2}\.\d{4})\s*\|\s*$/);
-    if (bm) {
-      // собрать непрерывную серию
-      var series = [];
-      var k = j;
-      while (k < n) {
-        var sm = lines[k].match(/^\|\s*([^|]*?)\s*\|\s*(\d{1,2}\.\d{1,2}\.\d{4})?\s*\|\s*$/);
-        if (sm && !/^:-:/.test(lines[k])) { series.push({ customer: sm[1].trim(), dateOpen: (sm[2]||'').trim() }); k++; }
-        else break;
-      }
-      if (series.length >= 5) { blocks.push(series); }
-      j = k;
-    }
-  }
-  // выбрать блок: точное совпадение длины, иначе берём хвост блока
-  // длиной = числу названий (последние N строк соответствуют вакансиям)
-  var chosen = null;
-  for (var b = 0; b < blocks.length; b++) {
-    if (blocks[b].length === names.length) { chosen = blocks[b]; break; }
-  }
-  if (!chosen) {
-    for (var b2 = 0; b2 < blocks.length; b2++) {
-      if (blocks[b2].length > names.length) {
-        chosen = blocks[b2].slice(blocks[b2].length - names.length);
-        break;
-      }
-    }
-  }
-
+  // заказчик+дата открытия — необязательный блок; выгрузка нестабильна,
+  // поэтому НЕ привязываем жёстко: показываем названия в любом случае.
   var out = [];
   for (var idx = 0; idx < names.length; idx++) {
-    var rec = { kind: names[idx].kind, title: names[idx].title, customer: '', dateOpen: '' };
-    if (chosen && chosen[idx]) { rec.customer = chosen[idx].customer; rec.dateOpen = chosen[idx].dateOpen; }
-    out.push(rec);
+    out.push({ kind: names[idx].kind, title: names[idx].title,
+               people: names[idx].people || 1, customer: '', dateOpen: '' });
   }
   return out;
 }
@@ -682,27 +677,33 @@ function renderVacCard(v) {
 function renderLineProduction(md) {
   const rows = parseLineProduction(md || '');
   if (!rows.length) return '';
-  // Группировка по названию
+  // Группировка по названию: count = число строк-вакансий,
+  // people = суммарная потребность в людях.
   const groups = {};
   rows.forEach(function(r){
     const k = r.title.toLowerCase();
-    if (!groups[k]) groups[k] = { title: r.title, count: 0, kind: r.kind, dateOpen: r.dateOpen, customer: r.customer };
+    if (!groups[k]) groups[k] = { title: r.title, count: 0, people: 0, kind: r.kind };
     groups[k].count += 1;
-    if (r.dateOpen && !groups[k].dateOpen) groups[k].dateOpen = r.dateOpen;
-    if (r.customer && !groups[k].customer) groups[k].customer = r.customer;
+    groups[k].people += (r.people || 1);
   });
-  const items = Object.values(groups).sort(function(a,b){ return b.count - a.count; });
+  const items = Object.values(groups).sort(function(a,b){ return b.people - a.people; });
   const cards = items.map(function(g){
-    var meta = (g.kind === 'новая' ? '🆕 новая' : 'замена');
-    if (g.customer) meta += ' · ' + escapeHtml(g.customer);
-    if (g.dateOpen) meta += ' · открыта ' + escapeHtml(g.dateOpen);
+    var meta = (g.kind === 'новая' ? '\uD83C\uDD95 новая' : 'замена');
+    // бейдж количества: показываем людей, если их больше одного
+    var badge = '';
+    if (g.people > 1) {
+      badge = ' <span class="lp-count">' + g.people + ' чел.</span>';
+    } else if (g.count > 1) {
+      badge = ' <span class="lp-count">\u00D7' + g.count + '</span>';
+    }
     return '<div class="line-prod-card">' +
-      '<div class="lp-title">' + escapeHtml(g.title) + (g.count > 1 ? ' <span class="lp-count">×' + g.count + '</span>' : '') + '</div>' +
+      '<div class="lp-title">' + escapeHtml(g.title) + badge + '</div>' +
       '<div class="lp-meta">' + meta + '</div>' +
     '</div>';
   }).join('');
-  const total = rows.length;
-  return '<div class="section-title">Производственные линейные вакансии <span style="color:#7a6f95;font-weight:500;font-size:14px;">· ' + total + ' открыто</span></div>' +
+  // общий счётчик — суммарная потребность в людях
+  var totalPeople = rows.reduce(function(s, r){ return s + (r.people || 1); }, 0);
+  return '<div class="section-title">Производственные линейные вакансии <span style="color:#7a6f95;font-weight:500;font-size:14px;">\u00B7 ' + totalPeople + ' чел.</span></div>' +
     '<div class="line-prod-grid">' + cards + '</div>';
 }
 
