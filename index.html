@@ -335,10 +335,10 @@ function parseRecruitment(md) {
       }
       return { key: k, ts: ts, val: (v[k] || '').trim() };
     }).sort(function(a,b){ return b.ts - a.ts; });
-    var _dashKey = null;
-    for (var _di = 0; _di < _dashCandidates.length; _di++) {
-      if (_dashCandidates[_di].val) { _dashKey = _dashCandidates[_di].key; break; }
-    }
+    // Берём САМУЮ СВЕЖУЮ ПО ДАТЕ колонку (даже если она пустая).
+    // Если новая колонка только что добавлена и пуста — статус показываем пустым,
+    // НЕ фолбэкаем на старые: старые тексты неактуальны.
+    var _dashKey = _dashCandidates.length > 0 ? _dashCandidates[0].key : null;
     var _internalKey = Object.keys(v).find(function(k){ return /^Статус на\s+\d/i.test(k); });
     var _src = _dashKey || _internalKey;
     v._internalStatus = _src ? (v[_src] || '').replace(/&#10;/g, ' ').replace(/\s+/g, ' ').trim() : '';
@@ -777,7 +777,7 @@ function renderVacCard(v) {
     '</div></div>' +
     progressHtml +
     '<div class="tags">' + multiTag + stageTag + riskTags + '<span class="tag role">' + role + '</span></div>' +
-    ((v._internalStatus || v._latestStatus) ? ('<div class="latest-status"><div class="ls-head">' + (v._internalStatus ? (v._internalStatusSource === 'dashboard' ? 'Статус (для дашборда)' : 'Статус (внутренний)') : ('Статус ' + escapeHtml(v._latestWeek || '—'))) + '</div><div class="ls-body">' + escapeHtml((v._internalStatus || v._latestStatus).length>700 ? (v._internalStatus || v._latestStatus).slice(0,700)+'…' : (v._internalStatus || v._latestStatus)) + '</div></div>') : '') +
+    (v._internalStatus ? ('<div class="latest-status"><div class="ls-head">' + (v._internalStatusSource === 'dashboard' ? 'Статус (для дашборда)' : 'Статус (внутренний)') + '</div><div class="ls-body">' + escapeHtml(v._internalStatus.length>700 ? v._internalStatus.slice(0,700)+'…' : v._internalStatus) + '</div></div>') : '') +
   '</div>';
 }
 
