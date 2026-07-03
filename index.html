@@ -245,6 +245,25 @@ body {
   border-left: 3px solid #6b5fff;
 }
 .report-section.report-callout h3 { color: #4f46e5; }
+
+/* ===== HR-процессы: Удержание и развитие (недельный вид) ===== */
+.hrx-head { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:2px 0 16px; }
+.hrx-head .wk { font-size:13px; font-weight:700; color:#4f46e5; background:#f0f3ff; padding:5px 14px; border-radius:999px; }
+.hrx-head .prev { font-size:12px; color:#8a90a0; }
+.hrx-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px; margin-bottom:22px; }
+.hrx-card { background:#fff; border:1px solid #e5e2f0; border-radius:12px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.hrx-card { border-top:3px solid #7c74d6; }
+.hrx-card.office { border-top-color:#3aa6b9; }
+.hrx-card.brand  { border-top-color:#d68fce; }
+.hrx-card.event  { border-top-color:#e0a23a; }
+.hrx-card .ct { font-size:14.5px; font-weight:700; color:#2d2a4a; margin:0 0 10px; display:flex; align-items:center; gap:8px; }
+.hrx-card .ct .ico { font-size:18px; }
+.hrx-item { display:flex; gap:9px; align-items:flex-start; font-size:13px; color:#3a3750; line-height:1.4; padding:5px 0; border-top:1px solid #f2f0f8; }
+.hrx-item:first-of-type { border-top:none; }
+.hrx-dot { flex:0 0 auto; width:15px; height:15px; border-radius:50%; margin-top:2px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:#fff; }
+.hrx-dot.done { background:#2ea44f; }
+.hrx-dot.prog { background:#e0a23a; }
+.hrx-note { margin-top:6px; padding:13px 18px; background:#f7f6fb; border-left:3px solid #7c74d6; border-radius:8px; color:#4a4763; font-size:12.5px; }
 </style></head><body>
 <div class="wrap">
 <header class="page-head"><div class="brand"><h1>COSMO HR Dashboard</h1><div class="sub">обновлено: <span id="today">—</span></div></div></header>
@@ -2286,60 +2305,70 @@ function renderReportsTab(activeMonth) {
 }
 
 
+const HR_RETENTION = {
+  week: "29 июня – 3 июля",
+  prevWeek: "22–26 июня",
+  metrics: [
+    { icon: "🤝", num: "1", lbl: "встреча 1:1" },
+    { icon: "📣", num: "3", lbl: "поста внутриком" },
+    { icon: "✨", num: "1", lbl: "пост HR-бренд" }
+  ],
+  blocks: [
+    { cls:"", ico:"🌱", title:"Адаптация", items:[
+      { s:"done", t:"1:1 с Полиной — завершение испытательного срока" }
+    ]},
+    { cls:"brand", ico:"📣", title:"Внутрикоммуникации", items:[
+      { s:"done", t:"Вышло 3 запланированных поста" },
+      { s:"done", t:"Собран контент-план на июль — идём по нему" }
+    ]},
+    { cls:"brand", ico:"✨", title:"HR-бренд", items:[
+      { s:"done", t:"Вышел 1 запланированный пост" }
+    ]},
+    { cls:"office", ico:"🏢", title:"Офис-менеджмент · Чебоксары", items:[
+      { s:"done", t:"Согласован новый формат закупки воды (кабинет Михаила)" },
+      { s:"done", t:"Организован выезд УК" },
+      { s:"prog", t:"Аренда офиса — на обсуждении" },
+      { s:"prog", t:"Ремонт — закуплено, нужно забрать" },
+      { s:"prog", t:"Канцелярия и расходники — таблица скорректирована, ведём работу" },
+      { s:"prog", t:"Плёнка — в процессе, нужно уточнение по оклейке парадных окон" }
+    ]},
+    { cls:"office", ico:"🏢", title:"Офис-менеджмент · Поклонка", items:[
+      { s:"done", t:"Подарки на ДР — подарены" },
+      { s:"done", t:"Чек-листы ведутся" }
+    ]},
+    { cls:"", ico:"📈", title:"ИПР", items:[
+      { s:"prog", t:"Проговорили с Женей — сейчас низкий приоритет, будет корректировка" }
+    ]},
+    { cls:"event", ico:"🏛️", title:"Таунхолл", items:[
+      { s:"prog", t:"Идёт подготовка — следующий по плану в конце июля" }
+    ]},
+    { cls:"event", ico:"🚀", title:"Выезд УК · сентябрь", items:[
+      { s:"prog", t:"Согласование зала и скидок, готовится презентация" }
+    ]}
+  ],
+  focus: "Большой созвон с Настей — навести порядок по задачам, расставить приоритеты и дедлайны."
+};
+
 function renderHRProcessTab() {
+  var R = HR_RETENTION;
+  var stats = R.metrics.map(function(m){
+    return '<div class="report-stat"><div class="num">' + m.icon + ' ' + m.num + '</div><div class="lbl">' + escapeHtml(m.lbl) + '</div></div>';
+  }).join('');
+  var cards = R.blocks.map(function(b){
+    var items = b.items.map(function(it){
+      var dot = it.s === 'done'
+        ? '<span class="hrx-dot done">✓</span>'
+        : '<span class="hrx-dot prog">●</span>';
+      return '<div class="hrx-item">' + dot + '<span>' + escapeHtml(it.t) + '</span></div>';
+    }).join('');
+    return '<div class="hrx-card ' + b.cls + '"><div class="ct"><span class="ico">' + b.ico + '</span>' + escapeHtml(b.title) + '</div>' + items + '</div>';
+  }).join('');
   return '' +
-    '<div class="report-month-head"><h2>🌿 HR-процессы</h2><div class="sub">Адаптация · Внутрикоммуникации · HR-бренд</div></div>' +
-
-    '<div class="report-section">' +
-      '<h3><span class="icon">🌱</span> Адаптация</h3>' +
-      '<div class="report-stats">' +
-        '<div class="report-stat"><div class="num">—</div><div class="lbl">встреч 1:1 (за месяц)</div></div>' +
-        '<div class="report-stat"><div class="num">—</div><div class="lbl">сотрудников в адаптации</div></div>' +
-      '</div>' +
-      '<h4 style="margin:14px 0 8px 0;font-size:14px;color:#4f46e5;">Цикл адаптации</h4>' +
-      '<ul class="report-list">' +
-        '<li>Регистрация новичков в «Моей команде»</li>' +
-        '<li>Продолжается наполнение Базы знаний</li>' +
-        '<li>Welcome-встречи, план 30/60/90</li>' +
-      '</ul>' +
-      '<h4 style="margin:14px 0 8px 0;font-size:14px;color:#4f46e5;">В работе / ближайшие события</h4>' +
-      '<ul class="report-list">' +
-        '<li><i>здесь будут задачи из листа «Адаптация» — как только Sheets станет доступен</i></li>' +
-      '</ul>' +
-    '</div>' +
-
-    '<div class="report-section">' +
-      '<h3><span class="icon">📣</span> Внутрикоммуникации</h3>' +
-      '<h4 style="margin:0 0 8px 0;font-size:14px;color:#4f46e5;">Регулярные каналы</h4>' +
-      '<ul class="report-list">' +
-        '<li>Ежемесячные таунхоллы</li>' +
-        '<li>Контент-план на месяц вперёд, регулярный постинг</li>' +
-        '<li>Поздравления с днями рождения утром</li>' +
-        '<li>ENPS — март и сентябрь</li>' +
-      '</ul>' +
-      '<h4 style="margin:14px 0 8px 0;font-size:14px;color:#4f46e5;">В работе / ближайшие события</h4>' +
-      '<ul class="report-list">' +
-        '<li><i>здесь будут задачи из листа «Внутриком» — как только Sheets станет доступен</i></li>' +
-      '</ul>' +
-    '</div>' +
-
-    '<div class="report-section">' +
-      '<h3><span class="icon">✨</span> HR-бренд</h3>' +
-      '<div class="report-stats">' +
-        '<div class="report-stat"><div class="num">568</div><div class="lbl">подписчиков</div></div>' +
-      '</div>' +
-      '<ul class="report-list">' +
-        '<li>TG-канал, отзывы, карьерный сайт, подкасты с фаундерами</li>' +
-        '<li>Ссылка на TG в вакансиях</li>' +
-        '<li>Баннеры с ценностями в переговорные — ждём переезд лаборатории</li>' +
-      '</ul>' +
-    '</div>' +
-
-    '<div class="hr-note" style="margin-top:20px;padding:14px 18px;background:#fff8e6;border-left:3px solid #f0b429;border-radius:8px;color:#6b5215;">' +
-      '<b>ℹ️ Как наполнить эту вкладку данными:</b><br>' +
-      'Пришли текст (как для отчётов) со списком задач из листов «Адаптация» и «Внутриком» — я добавлю их сюда. ' +
-      'Автоматически прочитать листы сейчас не могу — Google Drive блокирует их для AI-инструментов.' +
-    '</div>';
+    '<div class="report-month-head"><h2>🌿 HR-процессы · Удержание и развитие</h2><div class="sub">Адаптация · Внутриком · HR-бренд · Офис-менеджмент · ИПР</div></div>' +
+    '<div class="hrx-head"><span class="wk">Неделя ' + escapeHtml(R.week) + '</span><span class="prev">предыдущая: ' + escapeHtml(R.prevWeek) + '</span></div>' +
+    '<div class="report-stats">' + stats + '</div>' +
+    '<div class="hrx-grid">' + cards + '</div>' +
+    '<div class="hrx-note"><b>🎯 Фокус недели:</b> ' + escapeHtml(R.focus) + '</div>';
 }
 
 function setupReportsSwitch() {
