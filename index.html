@@ -264,6 +264,17 @@ body {
 .hrx-dot.done { background:#2ea44f; }
 .hrx-dot.prog { background:#e0a23a; }
 .hrx-note { margin-top:6px; padding:13px 18px; background:#f7f6fb; border-left:3px solid #7c74d6; border-radius:8px; color:#4a4763; font-size:12.5px; }
+
+/* ===== Проекты 2026: статус-цвета и владельцы ===== */
+.proj-status.work { background:#e6efff; color:#2456c9; }
+.proj-status.done { background:#dcf3e0; color:#1d7a35; }
+.proj-status.plan { background:#eceef3; color:#5b6478; }
+.proj-owner { display:flex; align-items:center; gap:9px; font-size:14px; font-weight:800; color:#4a3618; margin:18px 0 9px; }
+.proj-owner .ocount { font-size:11px; font-weight:700; color:#8a7956; background:#f2e6cd; padding:2px 9px; border-radius:999px; }
+.proj-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; margin:2px 0 8px; }
+.proj-kpi { background:#fffaf0; border:1px solid #f0e2c2; border-radius:10px; padding:12px 14px; text-align:center; }
+.proj-kpi .n { font-size:26px; font-weight:800; line-height:1; color:#4a3618; }
+.proj-kpi .l { font-size:11.5px; color:#8a7956; margin-top:4px; }
 </style></head><body>
 <div class="wrap">
 <header class="page-head"><div class="brand"><h1>COSMO HR Dashboard</h1><div class="sub">обновлено: <span id="today">—</span></div></div></header>
@@ -1958,31 +1969,50 @@ function renderOnboardingBlock(onboardingText) {
   '</div>';
 }
 
-function renderProjectsBlock(recruitText) {
-  const proj = parseProjects2026(recruitText);
-  if (!proj.groups || !proj.groups.length) {
-    return '<div class="legacy-section"><h2>📋 Проекты 2026</h2><div class="empty">Нет проектов</div></div>';
-  }
-  const body = proj.groups.map(function(group){
-    if (!group.items || !group.items.length) return '';
-    const rows = group.items.map(function(p){
-      const status = p.status ? '<span class="proj-status">' + escapeHtml(p.status) + '</span>' : '';
-      const date = (p.parsedDate && p.parsedDate.label) ? '<span class="proj-date">' + escapeHtml(p.parsedDate.label) + '</span>' : '';
-      const goalText = (p.goal || '').slice(0, 250);
+const PROJECTS_2026 = [{"owner": "Рита", "items": [{"name": "СБ", "goal": "Все ключевые сотрудники компании проверены Службой (в подборе каждый новичок проверяется - это процесс) До 30.06", "status": "В работе"}, {"name": "Процесс оформления юристы кадры HR рук", "goal": "(чтобы это было легко и понятно) Каждый участник проекта знает свою роль, зону ответственности, дает нужный результат в срок и качественно, сотрудник оформлен правильно и в срок вне зависимости от сло", "status": "В работе"}, {"name": "Договоры СМЗ ГПХ ТД", "goal": "Новые сотрудники вне зависимости от формы сотрудничество оформлены быстро, понятный способ задач До 31.07", "status": "В работе"}, {"name": "Автоматизация подбора", "goal": "Рекрутер присутствует только на тех встречах, где необходимо и нужно принятие решения, рекрутер может взять больше задач, не теряя в качестве Первый этап (2 вакансии) до 30.06 30.11 - с остальными уча", "status": "В работе"}, {"name": "Бюджет отдела", "goal": "Количество неучтенных трат минимизированно (как минимум 80% четко по плану) Нет необходимости что-то доп согласовывать с Михаилом По кварталу - раз в квартал подбивать данные", "status": "В работе"}, {"name": "Подбор дашборды (офис и производство)", "goal": "Каждый из заказчиков понимает что происходит с вакансией в каждый момент времени, страхи и боли закрыты Заказчики помогают оптмизировать данные (чтобы были что требуются) Первый этап - каждый месяц св", "status": "В работе"}, {"name": "ФОТ разобраться общий", "goal": "Мы четко понимаем, сколько денег уйдет на оплату труда, траты прогнозируемы и измеримы Каждый месяц с апреля (апрель по факту)", "status": "В работе"}, {"name": "ТД и ДИ (чтобы были должностные инструкции и договоры)", "goal": "ТД и ДИ в наличии по всей компании Все сотрудники в компании имеют должностную инструкцию и актуальный защищающий компанию ТД До 12.08", "status": "В работе"}]}, {"owner": "Ксюша", "items": [{"name": "HR-бренд", "goal": "До 31.12 реализовано: TG канал, вывестки баннеры в офис, вывеска Cosmo неоновая, контент в TG, отзывы о компании (рейтинг минимум 4 звезды), карьерный сайт, подкасты с фаундерами (минимум 1), другие с", "status": "В работе"}, {"name": "Онбординг", "goal": "Наполнение корп портала, welcome-бук, welcome-преза, внедрение welcome-встреч, продолжение 30/60/90. Процентр удовлеторвенности онбординг не менее 80% До 31.12", "status": "В работе"}, {"name": "Подарки", "goal": "% доставленных вовремя (декабрь), опрос удовлетворенности До 30.06 - проработка идей и поиск подрядчиков", "status": ""}, {"name": "Выезд ук (отдых)", "goal": "Опрос удовлетворенности в конце мероприятия (не менее 80%) До 30.04 - бронь площадки До 31.05 - согласование программы", "status": ""}, {"name": "Таунхоллы", "goal": "Он проходит каждый месяц, количество сотрудников, опрос удовлетворенности Регулярно", "status": "В работе"}, {"name": "Enps", "goal": "Его наличие по графику, % участия (от 70%), % выполненных действий руководителям по болям (от 50%) Март и Сентябрь 26", "status": "В работе"}, {"name": "Корп активности", "goal": "Опросы удовлетворенности, проведение не менее 4 активностей (например, книжный клуб, настолки, онлайн-квизы) До 31.12", "status": ""}, {"name": "Внутриком", "goal": "Просмотры, реакции, комментарии, ответы на опросы, регулярность постинга Постоянно", "status": "В работе"}, {"name": "Корп общий", "goal": "Опрос после корпоратива, сравнение опросов \"было\" - \"стало\" Референсы до 31.10 Выбираем программу, подрядчиков, распределение ролей по проекту до 30.11 Тема и анонс до 31.12", "status": ""}]}, {"owner": "Лена", "items": [{"name": "Аутсорс", "goal": "Выполнение плана производства, отгрузок Достойная цена и хорошие отношения с подрядчиками (ночные смены например у нас не тарифицируется отдельно) Постоянно", "status": "В работе"}, {"name": "День семьи, Субботник, корп ПЛК, экскурсии на производство", "goal": "День семьи июнь - будут ли ремонтные работы июль - понимаем, срок (в зависимости от времени окончания работ - тк дети) День семьи примерно август 2026 (если работы закончатся) Опрос удовлетворения сот", "status": "В работе"}, {"name": "Решение конфликтных и нестандартных ситуаций на производстве", "goal": "Решены конфликтные ситуации в ходе жизнедеятельности ПЛК Постоянно", "status": "В работе"}, {"name": "Таунхолл производства и копакинг", "goal": "Количество сотрудников присутствующих (хотим 90%), их активность (количество вопросов)", "status": "В работе"}, {"name": "Расчеты персонал производства", "goal": "Остаться в рамках бюджета (не превысить) и не растерять персонал, отсутствие текучести 31.12", "status": ""}, {"name": "Изменение должностных инструкций ПЛК (по запросу Мокеевой Н)", "goal": "Должностные инструкции все с ознакомлением персонально работника (можно спрашивать, повышение эффективности работы) 31.05", "status": "В работе"}]}, {"owner": "Полина", "items": [{"name": "Перестройка офиса", "goal": "Качество работы, выполнено в согласованный срок руководством, оценка результата фаундерами До 30.06", "status": "В работе"}, {"name": "Ведение лаборатории", "goal": "Отсутствие жалоб от руководства лаборатории Постоянная задача", "status": "В работе"}, {"name": "Пожарная безопасность", "goal": "Отсутствие жалоб на Пожарную безопасность в Москве", "status": "В работе"}]}, {"owner": "Леся", "items": [{"name": "Likato day", "goal": "Стабильно раз в месяц встреча Есть план на квартал До 31.05 согласовываем и запускаем первую встречу", "status": ""}, {"name": "Зарубежные сервисы", "goal": "Сервисы у HR-отдела оплачены вовремя, нет задержек в оплате До 31.05 полностью перейдет в фин отдел Помощь согласование в том, чтобы у каждого был личный аккаунт (согласование) Не забыть закинуть в бю", "status": ""}]}, {"owner": "Настя", "items": [{"name": "Командировки", "goal": "Командировка оформлена быстро и комфортно для сотрудника, быстро и комфортно добрался сотрудник, самый гармоничный время//деньги вариант (сотрудник и компания win win) Постоянная задача", "status": "В работе"}, {"name": "Почта", "goal": "Соблюдены сроки отправки, отсутствие штрафов и санкций за нарушение сроков (у каждого письма индивидуально)", "status": "В работе"}, {"name": "ИПР и 360", "goal": "Начало подготовки - 07 (июль) учитывая что будет на всех оценка Запуск оценки - 15.10 (до 31.11 длится) Добавить пункт подготовки \"кто кого\" оценивает (Женя, Полина как вариант, в июле раскидываем рол", "status": "В работе"}, {"name": "Договора, оплаты, счета", "goal": "Удовлетворенный заказчик, оказанная вовремя услуга (потому что был договор) по договору Постоянная", "status": "В работе"}, {"name": "Преображение Ленкома", "goal": "Повышение комфорта, удовлетворенности корпкультурой Квартал - до 30.06", "status": "В работе"}]}, {"owner": "Женя", "items": [{"name": "AI-выезд", "goal": "", "status": "Сделано"}]}];
+
+function projStatusClass(s){
+  var t=(s||'').toLowerCase();
+  if(/сделан|готов|закрыт|выполнен/.test(t)) return 'done';
+  if(/работе|процесс/.test(t)) return 'work';
+  return 'plan';
+}
+function renderProjectsBlock() {
+  var blocks = PROJECTS_2026 || [];
+  var total=0, work=0, done=0, plan=0;
+  blocks.forEach(function(b){ (b.items||[]).forEach(function(p){
+    total++; var c=projStatusClass(p.status);
+    if(c==='done')done++; else if(c==='work')work++; else plan++;
+  });});
+  var kpis =
+    '<div class="proj-kpis">' +
+      '<div class="proj-kpi"><div class="n">' + total + '</div><div class="l">всего проектов</div></div>' +
+      '<div class="proj-kpi"><div class="n">' + work + '</div><div class="l">в работе</div></div>' +
+      '<div class="proj-kpi"><div class="n">' + plan + '</div><div class="l">планируется</div></div>' +
+      '<div class="proj-kpi"><div class="n">' + done + '</div><div class="l">сделано</div></div>' +
+      '<div class="proj-kpi"><div class="n">' + blocks.length + '</div><div class="l">владельцев</div></div>' +
+    '</div>';
+  var body = blocks.map(function(b){
+    var items=(b.items||[]);
+    if(!items.length) return '';
+    var rows=items.map(function(p){
+      var cls=projStatusClass(p.status);
+      var label=p.status? p.status : 'план';
+      var status='<span class="proj-status ' + cls + '">' + escapeHtml(label) + '</span>';
+      var goal=(p.goal||'').slice(0,180);
       return '<div class="proj-row">' +
         '<div style="flex:1;min-width:0;">' +
-          '<div class="ptitle"><b>' + escapeHtml(p.name || '—') + '</b>' + (p.owner ? '  <span style="color:#b09870;font-weight:500;font-size:11.5px;">· ' + escapeHtml(p.owner) + '</span>' : '') + '</div>' +
-          (goalText ? '<div class="pmeta">' + escapeHtml(goalText) + '</div>' : '') +
+          '<div class="ptitle">' + escapeHtml(p.name||'—') + '</div>' +
+          (goal? '<div class="pmeta">' + escapeHtml(goal) + '</div>' : '') +
         '</div>' +
-        '<div class="pright">' + status + date + '</div>' +
+        '<div class="pright">' + status + '</div>' +
       '</div>';
     }).join('');
-    return '<div class="proj-quarter">' + escapeHtml(group.title) + '</div>' + rows;
+    return '<div class="proj-owner">👤 ' + escapeHtml(b.owner) + '<span class="ocount">' + items.length + '</span></div>' + rows;
   }).join('');
-
   return '<div class="legacy-section">' +
-    '<h2>📋 Проекты 2026 <span class="badge">' + (proj.total || 0) + ' проектов</span></h2>' +
-    body +
+    '<h2>📋 Проекты 2026 <span class="badge">' + total + ' проектов</span></h2>' +
+    kpis + body +
   '</div>';
 }
 
