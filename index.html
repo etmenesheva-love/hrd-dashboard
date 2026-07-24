@@ -54,7 +54,6 @@ body {
 .status-pill.ok { background: #d8f0d8; color: #1d6f2c; }
 .status-pill.pause { background: #efe8ff; color: #5e3ab5; }
 .status-pill.closed { background: #e5e7eb; color: #4b5563; }
-.score { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 6px; background: #f0f3ff; color: #4f46e5; font-size: 11px; font-weight: 700; }
 .days-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: #5b6478; margin: 10px 0 4px; }
 .days-row .pct { font-weight: 700; color: #1f2330; }
 .days-row .pct.over { color: #c0392b; }
@@ -547,25 +546,6 @@ function progressClass(dp) {
   return 'green';
 }
 
-function computeScore(v, dp) {
-  let s = 0;
-  if (/горящ/i.test(v._priority)) s += 5;
-  else if (/тёпл|тепл/i.test(v._priority)) s += 3;
-  else if (/зелён|зелен/i.test(v._priority)) s += 1;
-  else s += 2;
-  if (dp) {
-    const pct = dp.current / Math.max(1, dp.limit);
-    if (pct >= 1) s += 6;
-    else if (pct >= 0.8) s += 4;
-    else if (pct >= 0.5) s += 2;
-    else s += 1;
-  } else { s += 1; }
-  if (/оффер/i.test(v._status)) s += 3;
-  else if (/открыт/i.test(v._status)) s += 3;
-  else if (/паузе/i.test(v._status)) s += 1;
-  return Math.min(15, s);
-}
-
 function roleType(v) {
   if (PROD_KW.test(v._title)) return 'production';
   if (/руководитель|директор|head\s+of|начальник|cfo|cto|coo|chief|операционн/i.test(v._title)) return 'lead';
@@ -784,7 +764,6 @@ function renderVacCard(v) {
   const dp = extractDays(v);
   const badge = statusBadge(v, dp);
   const border = vacBorderClass(badge);
-  const score = computeScore(v, dp);
   const stage = detectStage(v);
   const risks = detectRisks(v);
   const role = roleLabel(roleType(v));
@@ -825,7 +804,6 @@ function renderVacCard(v) {
       '<div class="vac-meta">' + escapeHtml(subtitle) + '</div>' +
     '</div><div class="vac-right">' +
       '<span class="status-pill ' + badge.cls + '">' + badge.txt + '</span>' +
-      '<div class="score">' + score + '/15</div>' +
     '</div></div>' +
     progressHtml +
     '<div class="tags">' + multiTag + stageTag + riskTags + '<span class="tag role">' + role + '</span></div>' +
