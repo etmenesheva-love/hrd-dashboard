@@ -405,7 +405,9 @@ function parseRecruitment(md) {
     var fotFromSalary = parseSalary(v._salary);
     var fotFromFotCol = parseInt((v['ФОТ в месяц'] || '0').replace(/[^\d-]/g, '')) || 0;
     var perSeat = fotFromSalary > 0 ? fotFromSalary : fotFromFotCol;
-    // Сколько ещё нанять: если в ячейке "Количество" формат "X из Y наняты" — берём (Y - X), иначе целое число
+    // Сколько ещё нанять: если в ячейке "Количество" формат "X из Y наняты" — берём (Y - X),
+    // если целое число — берём как есть, иначе ищем число рядом со словом "вакан…"/"человек"
+    // в свободном тексте (например "массовый найм, 20 вакансий предварительно").
     var countCell = (v['Количество (если несколько) человек'] || '').trim();
     var openCount = 1;
     var hiredCount = 0;
@@ -423,6 +425,13 @@ function parseRecruitment(md) {
         plannedCount = parseInt(single[1]) || 1;
         openCount = plannedCount;
         if (plannedCount > 1) isMulti = true;
+      } else {
+        var freeCount = countCell.match(/(\d+)\s*(?:вакан[а-яё]*|человек[а-яё]*|чел\.)/i);
+        if (freeCount) {
+          plannedCount = parseInt(freeCount[1]) || 1;
+          openCount = plannedCount;
+          if (plannedCount > 1) isMulti = true;
+        }
       }
     }
     v._openCount = openCount;
