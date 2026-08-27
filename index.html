@@ -300,7 +300,23 @@ const SHEETS = {
   ipr: '18vtmhL2GqzCd2sOVZR6ozaCplmRrry2F9e5igswCYHU',
 };
 
-const PROD_KW = /уборщиц|оператор\s*линии|оператор\s*производственной\s*линии|сборщик\s*товар|варщик|комплектовщик|бригадир|наладчик|кладовщик|машинист|грузчик|мойщик/i;
+// Последние строки рекрута, переданные HR до появления в выгрузке Google Sheets.
+// Каждая запись соответствует колонке B («Все вакансии») и свежему статусу для дашборда.
+const PENDING_RECRUIT_ROWS = [
+  { title: 'Главный бухгалтер', status: 'Провели мониторинг зарплат по просьбе заказчика. Размещена вакансия в Чебоксарах, запланирован синк с заказчиком.' },
+  { title: 'Руководитель рекламы', status: 'Получили согласование от Анастасии Мокеевой. Бриф с Дашей 28 августа.' },
+  { title: 'Категорийный менеджер (Декор + Дом)', status: 'Получили согласование от Анастасии Мокеевой. Бриф с Дашей 28 августа.' },
+  { title: 'Категорийный менеджер уход +лицо', status: 'Получили согласование от Анастасии Мокеевой. Бриф с Дашей 28 августа.' },
+  { title: 'Руководитель отдела логистики и клиентского сервиса', status: 'Бриф снят, мониторим кандидатов.' }
+];
+
+function pendingRecruitVacancy(row) {
+  return { _title: row.title, _status: 'Открыта', _priority: '', _customer: '', _recruiter: '',
+    _dateOpened: '', _internalStatus: row.status, _internalStatusSource: 'dashboard',
+    _allText: row.title + ' ' + row.status, _fot: 0, _totalOpen: 1, _openCount: 1 };
+}
+
+const PROD_KW = /уборщиц|оператор\s*линии|оператор\s*производственной\s*линии|сборщик|варщик|комплектовщик|бригадир|наладчик|кладовщик|машинист|грузчик|мойщик|механик\s*оборудования/i;
 const SPEC_KW = /специалист|менеджер|маркетолог|аналитик|бухгалтер|рекрутер|креатор|саппорт|сммщик|smm/i;
 
 function escapeHtml(s) {
@@ -355,7 +371,7 @@ function parseRecruitment(md) {
     // Колонок "(для дашборда)" может быть несколько (например, 10.06, 4/06, 1.06).
     // Берём САМУЮ СВЕЖУЮ ПО ДАТЕ В ЗАГОЛОВКЕ, у которой ячейка не пустая.
     // Парсим дату из имени колонки: "DD.MM.YYYY" или "DD/MM/YYYY".
-    var _dashCandidates = Object.keys(v).filter(function(k){ return /\(.*для\s+дашборда.*\)/i.test(k) || /^\d{1,2}[\.\/]\d{1,2}[\.\/]\d{2,4}$/.test(k.trim()); }).map(function(k){
+    var _dashCandidates = Object.keys(v).filter(function(k){ return /\(.*для\s+дашборда.*\)/i.test(k); }).map(function(k){
       var dm = k.match(/(\d{1,2})[\.\/](\d{1,2})(?:[\.\/](\d{2,4}))?/);
       var ts = 0;
       if (dm) {
@@ -857,6 +873,9 @@ function renderLineProduction(md) {
 function renderCEOSummary(vacs) {
   const kpi = buildKPI(vacs);
   const active = kpi.active;
+  // Не скрываем вакансии из раздела «На паузе»: это тоже актуальный перечень,
+  // но он не влияет на KPI открытых мест.
+  const paused = vacs.filter(function(v){ return isPaused(v); });
 
   // Делим активные на ОФИСНЫЕ и ПРОИЗВОДСТВЕННЫЕ — производство выносим в отдельный блок
   const isProd = function(v){ return roleType(v) === 'production'; };
@@ -893,6 +912,10 @@ function renderCEOSummary(vacs) {
     ? ('<div class="section-title">Оффер принят</div><div class="vac-grid">' + acceptedHtml + '</div>')
     : '';
 
+  const pausedBlock = paused.length
+    ? ('<div class="section-title">Вакансии на паузе <span style="color:#7a6f95;font-weight:500;font-size:14px;">· ' + paused.length + '</span></div><div class="vac-grid">' + paused.map(renderVacCard).join('') + '</div>')
+    : '';
+
   // Производственные линейные вакансии — берём из мини-таблицы recruit-листа
   var linePropRows = (typeof window !== 'undefined' && window._recruitMd) ? parseLineProduction(window._recruitMd) : [];
   var lineProdHtml = linePropRows.length ? renderLineProduction(window._recruitMd) : '';
@@ -912,6 +935,7 @@ function renderCEOSummary(vacs) {
     acceptedBlock +
     prodHtml +
     lineProdHtml +
+    pausedBlock +
     ceoBlock;
 }
 
@@ -2625,6 +2649,15 @@ async function main() {
     fetchSheet(SHEETS.ipr),
   ]);
   const vacs = parseRecruitment(md || '');
+  PENDING_RECRUIT_ROWS.forEach(function(row){
+    var existing = vacs.find(function(v){ return (v._title || '').toLowerCase() === row.title.toLowerCase(); });
+    if (existing) {
+      existing._internalStatus = row.status;
+      existing._internalStatusSource = 'dashboard';
+    } else {
+      vacs.push(pendingRecruitVacancy(row));
+    }
+  });
   window._recruitMd = md || '';
   document.getElementById('today').textContent = TODAY_STR;
 
